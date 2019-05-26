@@ -4,7 +4,7 @@ namespace SocialiteProviders\Simkl;
 
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
-class WordPressExtendSocialite
+class SimklExtendSocialite
 {
     public function handle(SocialiteWasCalled $socialiteWasCalled)
     {
