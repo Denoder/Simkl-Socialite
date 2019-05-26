@@ -45,7 +45,7 @@ class Provider extends AbstractProvider
             'https://api.simkl.com/users/settings', [
             'headers' => [
                 'Authorization' => 'Bearer '.$token,
-                'simkl-api-key' => ''
+                'simkl-api-key' => env('SIMKL_API_KEY', '')
             ],
         ]);
 
