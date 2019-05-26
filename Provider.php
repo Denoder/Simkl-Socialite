@@ -1,6 +1,6 @@
 <?php
 
-namespace SocialiteProviders\WordPress;
+namespace SocialiteProviders\Simkl;
 
 use Illuminate\Support\Arr;
 use SocialiteProviders\Manager\OAuth2\AbstractProvider;
