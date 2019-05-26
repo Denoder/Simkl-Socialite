@@ -25,7 +25,7 @@ class Provider extends AbstractProvider
      */
     protected function getAuthUrl($state)
     {
-        return $this->buildAuthUrlFromBase('https://simkl.com/oauth2/authorize', $state);
+        return $this->buildAuthUrlFromBase('https://simkl.com/oauth/authorize', $state);
     }
 
     /**
