@@ -3,6 +3,7 @@
 namespace SocialiteProviders\Simkl;
 
 use Illuminate\Support\Arr;
+use Laravel\Socialite\Two\InvalidStateException;
 use SocialiteProviders\Manager\OAuth2\AbstractProvider;
 use SocialiteProviders\Manager\OAuth2\User;
 
@@ -18,7 +19,7 @@ class Provider extends AbstractProvider
      *
      * @var array
      */
-    protected $scopes = [];
+    protected $scopes = ['public'];
 
     /**
      * {@inheritdoc}
@@ -33,7 +34,7 @@ class Provider extends AbstractProvider
      */
     protected function getTokenUrl()
     {
-        return 'https://api.simkl.com/oauth2/token';
+        return 'https://api.simkl.com/oauth/token';
     }
 
     /**
@@ -44,8 +45,8 @@ class Provider extends AbstractProvider
         $response = $this->getHttpClient()->get(
             'https://api.simkl.com/users/settings', [
             'headers' => [
-                'Authorization' => 'Bearer '.$token,
-                'simkl-api-key' => env('SIMKL_API_KEY', '')
+                'Authorization' => 'Bearer ' . $token,
+                'simkl-api-key' => $this->getConfig('client_id')
             ],
         ]);
 
@@ -59,10 +60,9 @@ class Provider extends AbstractProvider
     {
         return (new User())->setRaw($user)->map(
             [
-                'account'   => Arr::get($user, 'account'),
-                'joined_at' => $user['joined_at'],
-                'name'      => $user['name'],
-                'avatar'    => $user['avatar'],
+                'id' => $user['account']['id'],
+                'name' => $user['user']['name'],
+                'avatar' => $user['user']['avatar']
             ]
         );
     }
@@ -72,8 +72,55 @@ class Provider extends AbstractProvider
      */
     protected function getTokenFields($code)
     {
-        return array_merge(parent::getTokenFields($code), [
-            'grant_type' => 'authorization_code',
-        ]);
+        return Arr::add(
+            parent::getTokenFields($code), 'grant_type', 'authorization_code'
+        );
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAccessTokenResponse($code)
+    {
+        $response = $this->getHttpClient()->post($this->getTokenUrl(), [
+            'json' => $this->getTokenFields($code),
+        ]);
+
+        return json_decode($response->getBody(), true);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function user()
+    {
+        if ($this->hasInvalidState()) {
+            throw new InvalidStateException;
+        }
+    
+        $response = $this->getAccessTokenResponse($this->getCode());
+
+        $user = $this->mapUserToObject($this->getUserByToken(
+            $token = Arr::get($response, 'access_token')
+        ));
+
+        return $user->setToken($token);        
+    }
+
+    /**
+     * Syncs Simkl's Watch History
+     */
+    protected function syncUserHistory(string $token, array $data)
+    {
+        $response = $this->getHttpClient()->post(
+            'https://api.simkl.com/sync/history', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $token,
+                'simkl-api-key' => $this->getConfig('client_id')
+            ],
+            'json' => $data
+        ]);
+
+        return json_decode($response->getBody()->getContents(), true);
+    }    
 }
